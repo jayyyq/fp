@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 async function submitAction(formData: FormData) {
   "use server";
 
-  // Honeypot: a hidden field bots will fill in but humans won't see.
+  // Honeypot: a hidden field bots fill in but humans don't see.
   if (formData.get("website")) {
     redirect("/submit?status=ok");
   }
@@ -24,7 +24,7 @@ async function submitAction(formData: FormData) {
     redirect(`/submit?${params.toString()}`);
   }
 
-  createMeetup(result.value);
+  await createMeetup(result.value);
   redirect("/submit?status=ok");
 }
 
@@ -50,7 +50,10 @@ export default async function SubmitPage({
           >
             Back to listings
           </Link>
-          <Link href="/submit" className="rounded-full border border-ink-200 px-5 py-2 hover:border-ink-400">
+          <Link
+            href="/submit"
+            className="rounded-full border border-ink-200 px-5 py-2 hover:border-ink-400"
+          >
             Submit another
           </Link>
         </div>
@@ -83,7 +86,13 @@ export default async function SubmitPage({
           </label>
         </div>
 
-        <Field label="Group name" name="name" required maxLength={120} placeholder="e.g. Bay Area Pen Posse" />
+        <Field
+          label="Group name"
+          name="name"
+          required
+          maxLength={120}
+          placeholder="e.g. Bay Area Pen Posse"
+        />
 
         <Field
           label="Description"

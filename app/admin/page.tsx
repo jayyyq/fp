@@ -33,10 +33,10 @@ async function moderationAction(formData: FormData) {
 
   if (!Number.isFinite(id)) redirect(`/admin?filter=${filter}`);
 
-  if (action === "approve") updateStatus(id, "approved", notes);
-  else if (action === "reject") updateStatus(id, "rejected", notes);
-  else if (action === "pending") updateStatus(id, "pending", notes);
-  else if (action === "delete") deleteMeetup(id);
+  if (action === "approve") await updateStatus(id, "approved", notes);
+  else if (action === "reject") await updateStatus(id, "rejected", notes);
+  else if (action === "pending") await updateStatus(id, "pending", notes);
+  else if (action === "delete") await deleteMeetup(id);
 
   redirect(`/admin?filter=${filter}`);
 }
@@ -54,9 +54,10 @@ export default async function AdminPage({
   }
 
   const filter = (params.filter as MeetupStatus | "all" | undefined) ?? "pending";
-  const counts = countByStatus();
-  const meetups =
-    filter === "all" ? listAllMeetups() : listAllMeetups(filter);
+  const [counts, meetups] = await Promise.all([
+    countByStatus(),
+    filter === "all" ? listAllMeetups() : listAllMeetups(filter),
+  ]);
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
@@ -74,7 +75,7 @@ export default async function AdminPage({
             { v: "approved" as const, l: `Approved (${counts.approved})` },
             { v: "rejected" as const, l: `Rejected (${counts.rejected})` },
             { v: "all" as const, l: "All" },
-          ]
+          ] as const
         ).map((tab) => {
           const isActive = filter === tab.v;
           return (

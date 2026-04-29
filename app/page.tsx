@@ -26,8 +26,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const region = params.region;
   const format = params.format as MeetupFormat | undefined;
 
-  const meetups = listApprovedMeetups({ region, format });
-  const regions = getRegions();
+  const [meetups, regions] = await Promise.all([
+    listApprovedMeetups({ region, format }),
+    getRegions(),
+  ]);
 
   const grouped = meetups.reduce<Record<string, typeof meetups>>((acc, m) => {
     (acc[m.region] ||= []).push(m);

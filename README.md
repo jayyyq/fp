@@ -4,39 +4,73 @@ A community directory of fountain pen meet-up groups. Inspired by [nifty.day](ht
 adapted for the global fountain pen community.
 
 - **Browse** approved groups by region and format (in person / online / hybrid)
-- **Submit** a group via a public form (held for review)
+- **Submit** a group via a public form (held for moderation)
 - **Moderate** pending submissions in a password-protected `/admin` page
 
 ## Stack
 
 - Next.js 15 (App Router) + React 19 + TypeScript
 - Tailwind CSS
-- SQLite via `better-sqlite3` (single file at `data/meetups.db`)
+- SQLite via `@libsql/client` — local file for dev, Turso for production
 
-## Quick start
+---
+
+## Local development
 
 ```bash
-cp .env.example .env          # set ADMIN_PASSWORD and SESSION_SECRET
+cp .env.example .env       # leave TURSO_* blank; fill in ADMIN_PASSWORD + SESSION_SECRET
 npm install
-npm run seed                  # one-time: load a few starter groups
-npm run dev                   # http://localhost:3000
+npm run seed               # creates data/meetups.db and loads 8 starter groups
+npm run dev                # http://localhost:3000
 ```
 
-The site has three routes:
+---
 
-| Route      | Purpose                                                    |
-| ---------- | ---------------------------------------------------------- |
-| `/`        | Public listings, with region + format filters              |
-| `/submit`  | Public submission form (honeypot + time-trap spam defence) |
-| `/admin`   | Password-protected moderation queue                        |
+## Deploy to Vercel + Turso
 
-## Production
+### 1. Create a Turso database (free tier)
 
-1. Pick a host that gives you a writable disk (Railway, Fly, a VPS). Vercel's
-   serverless filesystem isn't persistent — for that, swap `better-sqlite3` for
-   `@libsql/client` pointing at Turso (drop-in for SQLite).
-2. Set `ADMIN_PASSWORD` and `SESSION_SECRET` (32+ random bytes) in env.
-3. `npm run build && npm start`.
+Install the Turso CLI and log in:
+```bash
+brew install tursodatabase/tap/turso   # macOS; see turso.tech for other platforms
+turso auth login
+```
+
+Create a database and grab the credentials:
+```bash
+turso db create inkmeet
+turso db show inkmeet --url            # → TURSO_DATABASE_URL
+turso db tokens create inkmeet         # → TURSO_AUTH_TOKEN
+```
+
+### 2. Apply the schema and seed starter data
+
+```bash
+TURSO_DATABASE_URL=libsql://... TURSO_AUTH_TOKEN=... npm run migrate
+TURSO_DATABASE_URL=libsql://... TURSO_AUTH_TOKEN=... npm run seed   # optional
+```
+
+### 3. Deploy to Vercel
+
+Push the branch to GitHub, then:
+
+1. Go to [vercel.com](https://vercel.com) → **New Project** → import the repo
+2. In **Environment Variables**, add:
+   - `TURSO_DATABASE_URL` — your Turso URL
+   - `TURSO_AUTH_TOKEN` — your Turso token
+   - `ADMIN_PASSWORD` — a strong password for `/admin`
+   - `SESSION_SECRET` — 32+ random characters (e.g. `openssl rand -hex 32`)
+3. Click **Deploy**. Vercel auto-detects Next.js; no `vercel.json` needed.
+
+---
+
+## Routes
+
+| Route     | Purpose                                                    |
+| --------- | ---------------------------------------------------------- |
+| `/`       | Public listings, with region + format filters              |
+| `/submit` | Public submission form (honeypot + time-trap spam defence) |
+| `/admin`  | Password-protected moderation queue                        |
 
 ## Schema
 
@@ -50,15 +84,14 @@ meetups(
 )
 ```
 
+---
+
 ## Suggested next steps
 
-These were intentionally left for after the first launch:
-
 - **Email notifications** when a new submission arrives (Resend / SMTP)
-- **iCal feed** of upcoming meetup dates per region
+- **iCal / RSS feed** of upcoming meetup dates per region
 - **Map view** using a static tile provider
 - **Tags** (beginner-friendly, calligraphy, vintage, Japanese pens)
 - **Edit / suggest-correction** flow so listings stay current
-- **RSS feed** of newly approved groups
 - **Featured** flag for pinned groups
-- **Real captcha** (hCaptcha) if the honeypot stops being enough
+- **hCaptcha** if the honeypot stops being enough
