@@ -1,6 +1,6 @@
-import { db } from "../lib/db";
+import { getDb } from "../lib/db";
 
-await db.executeMultiple(`
+await getDb().executeMultiple(`
   CREATE TABLE IF NOT EXISTS meetups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,

@@ -1,4 +1,6 @@
-import { db } from "../lib/db";
+import { getDb } from "../lib/db";
+
+const db = getDb();
 
 // Run migrations first so this script is safe to run against a blank database.
 await db.executeMultiple(`

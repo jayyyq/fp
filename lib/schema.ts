@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { getDb } from "./db";
 
 let pending: Promise<void> | null = null;
 
@@ -22,6 +22,6 @@ CREATE INDEX IF NOT EXISTS idx_meetups_region ON meetups(region);
 `;
 
 export function ensureSchema(): Promise<void> {
-  if (!pending) pending = db.executeMultiple(DDL);
+  if (!pending) pending = getDb().executeMultiple(DDL);
   return pending;
 }

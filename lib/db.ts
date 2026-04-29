@@ -7,6 +7,14 @@ function buildClient(): Client {
   if (tursoUrl) {
     return createClient({ url: tursoUrl, authToken: process.env.TURSO_AUTH_TOKEN });
   }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "TURSO_DATABASE_URL is not set. Add it (and TURSO_AUTH_TOKEN) to your Vercel environment variables. See README for setup instructions."
+    );
+  }
+
+  // Local dev: file-based SQLite
   const dbPath = resolve(process.cwd(), process.env.DATABASE_PATH ?? "./data/meetups.db");
   mkdirSync(dirname(dbPath), { recursive: true });
   return createClient({ url: `file:${dbPath}` });
@@ -17,13 +25,14 @@ declare global {
   var __meetupDb: Client | undefined;
 }
 
-export const db: Client =
-  globalThis.__meetupDb ??
-  (() => {
-    const client = buildClient();
-    if (process.env.NODE_ENV !== "production") globalThis.__meetupDb = client;
-    return client;
-  })();
+// Lazy getter: client is created on first call, not at module import time.
+// This lets Next.js build succeed without Turso credentials present.
+export function getDb(): Client {
+  if (globalThis.__meetupDb) return globalThis.__meetupDb;
+  const client = buildClient();
+  if (process.env.NODE_ENV !== "production") globalThis.__meetupDb = client;
+  return client;
+}
 
 export type MeetupStatus = "pending" | "approved" | "rejected";
 export type MeetupFormat = "in-person" | "online" | "hybrid";

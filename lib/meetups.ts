@@ -1,5 +1,5 @@
 import type { Row } from "@libsql/client";
-import { db, type Meetup, type MeetupFormat, type MeetupStatus } from "./db";
+import { getDb, type Meetup, type MeetupFormat, type MeetupStatus } from "./db";
 import { ensureSchema } from "./schema";
 
 export interface NewMeetupInput {
@@ -49,20 +49,20 @@ export async function listApprovedMeetups(
   }
 
   const sql = `SELECT * FROM meetups WHERE ${clauses.join(" AND ")} ORDER BY region ASC, city ASC, name ASC`;
-  const result = await db.execute({ sql, args });
+  const result = await getDb().execute({ sql, args });
   return result.rows.map(toMeetup);
 }
 
 export async function listAllMeetups(status?: MeetupStatus): Promise<Meetup[]> {
   await ensureSchema();
   if (status && VALID_STATUSES.includes(status)) {
-    const result = await db.execute({
+    const result = await getDb().execute({
       sql: "SELECT * FROM meetups WHERE status = ? ORDER BY submitted_at DESC",
       args: [status],
     });
     return result.rows.map(toMeetup);
   }
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: "SELECT * FROM meetups ORDER BY submitted_at DESC",
     args: [],
   });
@@ -71,7 +71,7 @@ export async function listAllMeetups(status?: MeetupStatus): Promise<Meetup[]> {
 
 export async function getRegions(): Promise<string[]> {
   await ensureSchema();
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: "SELECT DISTINCT region FROM meetups WHERE status = 'approved' ORDER BY region ASC",
     args: [],
   });
@@ -80,7 +80,7 @@ export async function getRegions(): Promise<string[]> {
 
 export async function countByStatus(): Promise<Record<MeetupStatus, number>> {
   await ensureSchema();
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: "SELECT status, COUNT(*) as count FROM meetups GROUP BY status",
     args: [],
   });
@@ -94,7 +94,7 @@ export async function countByStatus(): Promise<Record<MeetupStatus, number>> {
 
 export async function createMeetup(input: NewMeetupInput): Promise<Meetup> {
   await ensureSchema();
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: `INSERT INTO meetups (name, description, city, region, format, url, contact, status)
           VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
           RETURNING *`,
@@ -110,7 +110,7 @@ export async function updateStatus(
 ): Promise<Meetup | null> {
   if (!VALID_STATUSES.includes(status)) return null;
   await ensureSchema();
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: `UPDATE meetups SET status = ?, reviewed_at = datetime('now'), notes = ? WHERE id = ? RETURNING *`,
     args: [status, notes ?? null, id],
   });
@@ -119,7 +119,7 @@ export async function updateStatus(
 
 export async function deleteMeetup(id: number): Promise<boolean> {
   await ensureSchema();
-  const result = await db.execute({ sql: "DELETE FROM meetups WHERE id = ?", args: [id] });
+  const result = await getDb().execute({ sql: "DELETE FROM meetups WHERE id = ?", args: [id] });
   return result.rowsAffected > 0;
 }
 
